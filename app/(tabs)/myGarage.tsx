@@ -1,49 +1,65 @@
 import { View, Text, Image, FlatList, StyleSheet, Button } from 'react-native';
 import { useEffect, useState } from 'react';
-import { auth, db } from '../../firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'expo-router';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
+import { useAuth } from '../../contexts/AuthContext';
+import * as AuthModule from '../../contexts/AuthContext';
+console.log('💥 AuthModule:', AuthModule);
+
 
 export default function MyGarage() {
+  const { user, loading } = useAuth();
   const [userData, setUserData] = useState<any>(null);
   const router = useRouter();
 
   useEffect(() => {
-    const fetchUserData = async () => {
-      const uid = auth.currentUser?.uid;
-      if (!uid) {
-        console.warn('No user ID found.');
+    const fetchOrCreateUserData = async () => {
+      if (!user) {
+        router.replace('/login');
         return;
       }
-  
+
       try {
-        const docRef = doc(db, 'users', uid);
+        const docRef = doc(db, 'users', user.uid);
         const docSnap = await getDoc(docRef);
-  
+
         if (docSnap.exists()) {
           setUserData(docSnap.data());
         } else {
-          console.warn('No user document found for UID:', uid);
+          const newUser = {
+            email: user.email,
+            displayName: user.displayName || '',
+            photoURL: user.photoURL || '',
+            garage: [],
+          };
+          await setDoc(docRef, newUser);
+          setUserData(newUser);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
       }
     };
-  
-    fetchUserData();
-  }, []);
 
-  if (!userData) {
+    if (!loading) {
+      fetchOrCreateUserData();
+    }
+  }, [user, loading]);
+
+  if (loading || !userData) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loading}>Loading profile...</Text>
+      <View style={styles.centered}>
+        <Text>Loading profile...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Image source={{ uri: userData.photoURL || 'https://placehold.co/100x100' }} style={styles.avatar} />
+      <Image
+        source={{ uri: userData.photoURL || 'https://placehold.co/100x100' }}
+        style={styles.avatar}
+      />
       <Text style={styles.name}>{userData.displayName || 'No Name'}</Text>
 
       <Button title="Add Car to Garage" onPress={() => router.push('/addCar')} />
@@ -59,7 +75,9 @@ export default function MyGarage() {
                 source={{ uri: item.image || 'https://placehold.co/200x120' }}
                 style={styles.carImage}
               />
-              <Text style={styles.carText}>{item.year} {item.make} {item.model}</Text>
+              <Text style={styles.carText}>
+                {item.year} {item.make} {item.model}
+              </Text>
               <Text style={styles.modsText}>{item.mods}</Text>
             </View>
           )}
@@ -73,7 +91,7 @@ export default function MyGarage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, alignItems: 'center' },
-  loading: { fontSize: 16, marginTop: 40 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
   name: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
   sectionTitle: { fontSize: 18, marginTop: 30, marginBottom: 10 },
