@@ -6,8 +6,10 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'expo-router';
 import { v4 as uuidv4 } from 'uuid';
 import * as ImagePicker from 'expo-image-picker';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function AddCar() {
+  const theme = useTheme();
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
@@ -35,8 +37,7 @@ export default function AddCar() {
     const imageRef = ref(storage, path);
 
     await uploadBytes(imageRef, blob);
-    const downloadURL = await getDownloadURL(imageRef);
-    return downloadURL;
+    return await getDownloadURL(imageRef);
   };
 
   const handleAddCar = async () => {
@@ -58,12 +59,9 @@ export default function AddCar() {
         year: parseInt(year),
         image: imageUrl,
         mods: mods
-  .split(',')
-  .map((mod: string) => ({
-    text: mod.trim(),
-    date: Date.now(),
-  }))
-  .filter(mod => mod.text),
+          .split(',')
+          .map((mod: string) => ({ text: mod.trim(), date: Date.now() }))
+          .filter(mod => mod.text),
         createdAt: Date.now(),
       };
 
@@ -80,17 +78,37 @@ export default function AddCar() {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Add a Car to Your Garage</Text>
+    <ScrollView contentContainerStyle={[styles.container, { backgroundColor: theme.background }]}>
+      <Text style={[styles.header, { color: theme.text }]}>Add a Car to Your Garage</Text>
 
-      <TextInput placeholder="Make" value={make} onChangeText={setMake} style={styles.input} />
-      <TextInput placeholder="Model" value={model} onChangeText={setModel} style={styles.input} />
-      <TextInput placeholder="Year" value={year} onChangeText={setYear} keyboardType="numeric" style={styles.input} />
+      <TextInput
+        placeholder="Make"
+        placeholderTextColor={theme.mutedText}
+        value={make}
+        onChangeText={setMake}
+        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.card, color: theme.text }]}
+      />
+      <TextInput
+        placeholder="Model"
+        placeholderTextColor={theme.mutedText}
+        value={model}
+        onChangeText={setModel}
+        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.card, color: theme.text }]}
+      />
+      <TextInput
+        placeholder="Year"
+        placeholderTextColor={theme.mutedText}
+        value={year}
+        onChangeText={setYear}
+        keyboardType="numeric"
+        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.card, color: theme.text }]}
+      />
       <TextInput
         placeholder="Modifications (comma separated)"
+        placeholderTextColor={theme.mutedText}
         value={mods}
         onChangeText={setMods}
-        style={styles.input}
+        style={[styles.input, { borderColor: theme.border, backgroundColor: theme.card, color: theme.text }]}
       />
 
       <Button title="Pick Image" onPress={pickImage} />
@@ -121,7 +139,6 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ccc',
     marginBottom: 12,
     padding: 10,
     borderRadius: 8,
