@@ -1,34 +1,78 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert, ScrollView, Image } from 'react-native';
 import { auth, db } from '../firebaseConfig';
 import { doc, updateDoc, arrayUnion } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useRouter } from 'expo-router';
+import { v4 as uuidv4 } from 'uuid';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function AddCar() {
   const [make, setMake] = useState('');
   const [model, setModel] = useState('');
   const [year, setYear] = useState('');
-  const [image, setImage] = useState('');
   const [mods, setMods] = useState('');
+  const [imageUri, setImageUri] = useState<string | null>(null);
   const router = useRouter();
+
+  const pickImage = async () => {
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const uploadImageAsync = async (uri: string, path: string): Promise<string> => {
+    const response = await fetch(uri);
+    const blob = await response.blob();
+
+    const storage = getStorage();
+    const imageRef = ref(storage, path);
+
+    await uploadBytes(imageRef, blob);
+    const downloadURL = await getDownloadURL(imageRef);
+    return downloadURL;
+  };
 
   const handleAddCar = async () => {
     try {
       const uid = auth.currentUser?.uid;
       if (!uid) throw new Error('No user ID');
 
+      const carId = uuidv4();
+      let imageUrl = '';
+
+      if (imageUri) {
+        imageUrl = await uploadImageAsync(imageUri, `users/${uid}/cars/${carId}.jpg`);
+      }
+
+      const newCar = {
+        id: carId,
+        make,
+        model,
+        year: parseInt(year),
+        image: imageUrl,
+        mods: mods
+  .split(',')
+  .map((mod: string) => ({
+    text: mod.trim(),
+    date: Date.now(),
+  }))
+  .filter(mod => mod.text),
+        createdAt: Date.now(),
+      };
+
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, {
-        garage: arrayUnion({
-          make,
-          model,
-          year: parseInt(year),
-          image,
-          mods,
-        }),
+        garage: arrayUnion(newCar),
       });
 
-      Alert.alert('Car added to garage!');
+      Alert.alert('✅ Car added with image!');
       router.back();
     } catch (error: any) {
       Alert.alert('Error', error.message);
@@ -36,23 +80,45 @@ export default function AddCar() {
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Add a Car to Your Garage</Text>
 
       <TextInput placeholder="Make" value={make} onChangeText={setMake} style={styles.input} />
       <TextInput placeholder="Model" value={model} onChangeText={setModel} style={styles.input} />
       <TextInput placeholder="Year" value={year} onChangeText={setYear} keyboardType="numeric" style={styles.input} />
-      <TextInput placeholder="Image URL" value={image} onChangeText={setImage} style={styles.input} />
-      <TextInput placeholder="Modifications" value={mods} onChangeText={setMods} style={styles.input} />
+      <TextInput
+        placeholder="Modifications (comma separated)"
+        value={mods}
+        onChangeText={setMods}
+        style={styles.input}
+      />
+
+      <Button title="Pick Image" onPress={pickImage} />
+
+      {imageUri && (
+        <Image
+          source={{ uri: imageUri }}
+          style={{ width: '100%', height: 200, borderRadius: 10, marginVertical: 12 }}
+        />
+      )}
 
       <Button title="Add Car" onPress={handleAddCar} />
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20 },
-  header: { fontSize: 22, fontWeight: 'bold', marginBottom: 20 },
+  container: {
+    padding: 20,
+    flexGrow: 1,
+    justifyContent: 'center',
+  },
+  header: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
