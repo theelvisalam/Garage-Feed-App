@@ -3,7 +3,6 @@ import {
   Text,
   Image,
   FlatList,
-  StyleSheet,
   Button,
   Alert,
   TouchableOpacity,
@@ -17,11 +16,8 @@ import { doc, getDoc, setDoc, updateDoc, arrayRemove, arrayUnion } from 'firebas
 import { db, auth } from '../../firebaseConfig';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useAuth } from '../../contexts/AuthContext';
-import * as AuthModule from '../../contexts/AuthContext';
 
-console.log('💥 AuthModule:', AuthModule);
-
-export default function MyGarage() {
+export default function ProfileScreen() {
   const { user, loading } = useAuth();
   const [userData, setUserData] = useState<any>(null);
   const [modPromptVisible, setModPromptVisible] = useState(false);
@@ -126,127 +122,74 @@ export default function MyGarage() {
 
   if (loading || !userData) {
     return (
-      <View style={styles.centered}>
-        <Text style={{ color: theme.text }}>Loading profile...</Text>
+      <View className="flex-1 justify-center items-center bg-black">
+        <Text className="text-white">Loading profile...</Text>
       </View>
     );
   }
 
   return (
-    <ScrollView style={[styles.scrollContainer, { backgroundColor: theme.background }]} contentContainerStyle={{ alignItems: 'center' }}>
-      <View style={styles.container}>
+    <ScrollView className="flex-1 bg-black px-4 pt-12" contentContainerStyle={{ alignItems: 'center' }}>
+      <View className="items-center mb-6">
         <Image
           source={{ uri: userData.photoURL || 'https://placehold.co/100x100' }}
-          style={styles.avatar}
+          className="w-24 h-24 rounded-full border border-zinc-700 mb-4"
         />
-        <Text style={[styles.name, { color: theme.text }]}>{userData.displayName || 'No Name'}</Text>
+        <Text className="text-white text-2xl font-bold">{userData.displayName || 'No Name'}</Text>
+        <Text className="text-zinc-400">{userData.email}</Text>
+        <Text className="text-white mt-2">Garage Cars: {userData.garage?.length || 0}</Text>
+      </View>
 
+      <View className="bg-zinc-900 rounded-2xl p-4 mb-6 shadow w-full max-w-xl">
         <Button title="Add Car to Garage" onPress={() => router.push('/addCar')} />
+      </View>
 
-        <Text style={[styles.sectionTitle, { color: theme.secondary }]}>My Cars</Text>
-        {userData.garage && userData.garage.length > 0 ? (
-          <FlatList
-            data={userData.garage}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <View style={[styles.carCard, { backgroundColor: theme.card, borderColor: theme.border }]}>
-                <TouchableOpacity
-                  onPress={() =>
-                    router.push({ pathname: '/carDetails', params: { car: JSON.stringify(item) } })
-                  }
-                >
-                  <Image
-                    source={{ uri: item.image || 'https://placehold.co/200x120' }}
-                    style={styles.carImage}
-                  />
-                  <Text style={[styles.carText, { color: theme.text }]}> {item.year} {item.make} {item.model} </Text>
-                  <Text style={[styles.modsText, { color: theme.mutedText }]}> Mods: {item.mods?.length ? item.mods.map((mod: any) => mod.text).join(', ') : 'None'} </Text>
-                </TouchableOpacity>
-
-                <View style={styles.buttonRow}>
-                  <Button
-                    title="Edit"
-                    onPress={() =>
-                      router.push({ pathname: '/editCar', params: { car: JSON.stringify(item) } })
-                    }
-                  />
-                  <Button title="Delete" color="red" onPress={() => handleDeleteCar(item)} />
-                  <Button title="Add Mod" onPress={() => openModPrompt(item)} />
-                </View>
-              </View>
-            )}
-          />
-        ) : (
-          <Text style={{ fontSize: 16, marginTop: 20, color: theme.primary }}>No cars in your garage yet.</Text>
-        )}
-
-        {/* Mod Prompt Modal */}
-        <Modal visible={modPromptVisible} animationType="slide" transparent>
-          <View style={styles.modalOverlay}>
-            <View style={[styles.modalContainer, { backgroundColor: theme.card }]}>
-              <Text style={[styles.modalTitle, { color: theme.text }]}>Add a New Mod</Text>
-              <TextInput
-                placeholder="Enter mod"
-                placeholderTextColor={theme.mutedText}
-                value={modInput}
-                onChangeText={setModInput}
-                style={[styles.input, { borderColor: theme.border, backgroundColor: theme.background, color: theme.text }]}
+      <View className="w-full max-w-xl space-y-4">
+        {userData.garage?.map((item: any) => (
+          <View key={item.id} className="bg-zinc-900 rounded-2xl p-4 shadow">
+            <TouchableOpacity
+              onPress={() =>
+                router.push({ pathname: '/carDetails', params: { car: JSON.stringify(item) } })
+              }
+            >
+              <Image
+                source={{ uri: item.image || 'https://placehold.co/200x120' }}
+                className="w-full h-40 rounded-lg mb-2"
               />
-              <View style={styles.modalButtons}>
-                <Button title="Cancel" onPress={() => setModPromptVisible(false)} />
-                <Button title="Add Mod" onPress={handleAddMod} />
-              </View>
+              <Text className="text-white font-bold text-lg">
+                {item.year} {item.make} {item.model}
+              </Text>
+              <Text className="text-zinc-400">Mods: {item.mods?.length ? item.mods.map((mod: any) => mod.text).join(', ') : 'None'}</Text>
+            </TouchableOpacity>
+            <View className="flex-row justify-between mt-3 space-x-2">
+              <Button title="Edit" onPress={() => router.push({ pathname: '/editCar', params: { car: JSON.stringify(item) } })} />
+              <Button title="Delete" color="red" onPress={() => handleDeleteCar(item)} />
+              <Button title="Add Mod" onPress={() => openModPrompt(item)} />
             </View>
           </View>
-        </Modal>
+        )) || (
+          <Text className="text-zinc-400">No cars in your garage yet.</Text>
+        )}
       </View>
+
+      <Modal visible={modPromptVisible} animationType="slide" transparent>
+        <View className="flex-1 justify-center items-center bg-black/70">
+          <View className="bg-zinc-900 p-6 rounded-2xl w-11/12">
+            <Text className="text-white text-lg font-bold mb-2">Add a New Mod</Text>
+            <TextInput
+              placeholder="Enter mod"
+              placeholderTextColor="#999"
+              value={modInput}
+              onChangeText={setModInput}
+              className="border border-zinc-600 bg-black text-white p-3 rounded-lg mb-4"
+            />
+            <View className="flex-row justify-between">
+              <Button title="Cancel" onPress={() => setModPromptVisible(false)} />
+              <Button title="Add Mod" onPress={handleAddMod} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  scrollContainer: { flex: 1 },
-  container: { flex: 1, padding: 20, alignItems: 'center' },
-  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 10 },
-  name: { fontSize: 20, fontWeight: 'bold', marginBottom: 20 },
-  sectionTitle: { fontSize: 18, marginTop: 30, marginBottom: 10 },
-  carCard: {
-    marginBottom: 20,
-    alignItems: 'center',
-    borderWidth: 1,
-    padding: 15,
-    borderRadius: 10,
-    width: 300,
-  },
-  carImage: { width: 250, height: 140, borderRadius: 10, marginBottom: 5 },
-  carText: { fontSize: 16, fontWeight: '600', marginBottom: 5 },
-  modsText: { fontSize: 14, marginBottom: 10 },
-  buttonRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#00000099',
-  },
-  modalContainer: {
-    padding: 25,
-    width: '80%',
-    borderRadius: 10,
-  },
-  modalTitle: { fontSize: 18, fontWeight: '600', marginBottom: 10 },
-  input: {
-    borderWidth: 1,
-    marginBottom: 12,
-    padding: 10,
-    borderRadius: 8,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-});
