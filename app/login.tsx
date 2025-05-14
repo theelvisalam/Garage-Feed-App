@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, Button, Alert } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebaseConfig';
 import { useRouter } from 'expo-router';
@@ -19,38 +19,35 @@ export default function LoginScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Login to GarageFeed</Text>
+    <View className="flex-1 bg-black justify-center px-6">
+      <Text className="text-white text-3xl font-bold text-center mb-8">GarageFeed Login</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
+      <View className="bg-zinc-900 p-5 rounded-2xl shadow mb-4">
+        <TextInput
+          className="border border-zinc-700 bg-black text-white p-3 rounded-lg mb-4"
+          placeholder="Email"
+          placeholderTextColor="#999"
+          autoCapitalize="none"
+          keyboardType="email-address"
+          value={email}
+          onChangeText={setEmail}
+        />
 
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+        <TextInput
+          className="border border-zinc-700 bg-black text-white p-3 rounded-lg mb-4"
+          placeholder="Password"
+          placeholderTextColor="#999"
+          secureTextEntry
+          value={password}
+          onChangeText={setPassword}
+        />
 
-      <Button title="Log In" onPress={handleLogin} />
+        <Button title="Log In" onPress={handleLogin} />
+      </View>
 
       <TouchableOpacity onPress={() => router.replace('/(auth)/signup')}>
-        <Text style={styles.link}>Don't have an account? Sign up</Text>
+        <Text className="text-blue-400 text-center mt-4">Don't have an account? Sign up</Text>
       </TouchableOpacity>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 20 },
-  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
-  input: { height: 50, borderColor: '#ccc', borderWidth: 1, paddingHorizontal: 10, marginBottom: 15, borderRadius: 8 },
-  link: { marginTop: 20, textAlign: 'center', color: '#007AFF' },
-});
